@@ -90,24 +90,8 @@ const AppProvider = ({ children }) => {
     }
   };
 
- 
-  const deleteTask = async (taskId) => {
-    try {
-      const res = await fetch(`${API_URL}/tasks/${taskId}`,
-        {method: 'DELETE',
-      });
-
-      if (!res.ok){
-        throw new Error('Nie udało się usunąć zadania.');
-      }
-      fetchTasks();
-    } catch (error) {
-      console.error("Błąd podczas usuwania zadania: ", error);
-    }
-  };
-
   // Udostępniamy wszystkie potrzebne dane i funkcje w kontekście
-  const value = { user, users, tasks, login, logout, isLoading, fetchUsers, fetchTasks, deleteUser, deleteTask };
+  const value = { user, users, tasks, login, logout, isLoading, fetchUsers, fetchTasks, deleteUser };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
@@ -264,7 +248,7 @@ function TaskView({ task, onAddComment }) {
 function BossDashboard() {
   const [view, setView] = useState('tasks');
   // Pobieramy wszystko z głównego kontekstu, nie trzymamy już stanu lokalnie
-  const { tasks, fetchTasks, fetchUsers, deleteTask } = useAppData();
+  const { tasks, fetchTasks, fetchUsers } = useAppData();
 
   const addTask = async (newTaskData) => {
     await fetch(`${API_URL}/tasks`, {
@@ -291,7 +275,7 @@ function BossDashboard() {
         <button onClick={() => setView('users')} className={view === 'users' ? 'active' : ''}>Zarządzaj użytkownikami</button>
         <button onClick={() => setView('stats')} className={view === 'stats' ? 'active' : ''}>Statystyki</button>
       </nav>
-      {view === 'tasks' && <BossTaskView tasks={tasks} onAddTask={addTask} onDeleteTask={deleteTask} />}
+      {view === 'tasks' && <BossTaskView tasks={tasks} onAddTask={addTask} />}
       {view === 'users' && <UserManagement onAddUser={addUser} />}
       {view === 'stats' && <StatisticsPage />}
     </div>
@@ -302,7 +286,7 @@ function BossDashboard() {
 // pozostają bez większych zmian, ponieważ ich logika jest już poprawna.
 // Poniżej wklejam je dla kompletności.
 
-function BossTaskView({ tasks, onAddTask, onDeleteTask }) {
+function BossTaskView({ tasks, onAddTask }) {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const { users } = useAppData();
     const getUsernameById = (id) => users.find(u => u.id === id)?.username || 'Nieznany';
@@ -326,7 +310,6 @@ function BossTaskView({ tasks, onAddTask, onDeleteTask }) {
                             <div>{task.comments.map((c) => <div key={c.id} className={`comment ${c.status === 'ważne' ? 'status-ważne' : 'status-normal'}`}><p className="comment-author">{c.by}:</p><p>{c.text}</p></div>)}</div>
                         ) : <p>Brak komentarzy.</p>}
                     </div>
-                    <button onClick={() => onDeleteTask(task.id)} className='btn btn-danger delete-task-btn'>Usuń zadanie</button>
                 </div>
             ))}
         </div>
