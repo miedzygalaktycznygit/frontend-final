@@ -254,3 +254,122 @@ body {
   .user-list-item > button {
     margin-left: auto;
   }
+
+ /* ================================================================= */
+ /* --- STYLE DLA STRONY STATYSTYK --- */
+ /* ================================================================= */
+
+ .stats-page-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr; 
+    gap: 1.5rem;
+    align-items: flex-start;
+ }
+
+ .stats-table-container { }
+
+ .year-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+ }
+
+ .year-navigation h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+ }
+
+ .stats-table {
+    width: 100%;
+    border-collapse: collapse; 
+ }
+
+ .stats-table th, .stats-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+ }
+
+ .stats-table th {
+    font-weight: 600;
+    background-color: #f9fafb;
+ }
+ 
+ .stats-table tbody tr:last-child td {
+    border-bottom: none;
+ }
+ 
+ /* NOWY STYL: Kontener dla pola input i podpowiedzi */
+ .input-with-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+ }
+
+ .input-with-suggestion .input-field {
+    margin-bottom: 0;
+    flex-grow: 1; /* Input zajmuje dostępną przestrzeń */
+ }
+
+ /* NOWY STYL: Tekst podpowiedzi */
+ .suggestion-text {
+    font-size: 0.875rem;
+    color: #6b7280;
+    white-space: nowrap; /* Zapobiega łamaniu tekstu */
+ }
+
+
+ .stats-summary-container {
+    position: sticky; 
+    top: 2rem;
+ }
+
+ .stats-summary-container h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 1rem;
+ }
+
+ .summary-item {
+    margin-bottom: 1.5rem;
+ }
+
+ .summary-item:last-child {
+    margin-bottom: 0;
+ }
+
+ .summary-item h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #6b7280;
+ }
+
+ .summary-item .summary-value {
+    margin: 0;
+    font-size: 1.25rem; /* Zmniejszono dla lepszego dopasowania */
+    font-weight: 700;
+    color: #4f46e5;
+ }
+ 
+ /* NOWY STYL: Specjalny styl dla tekstu prognozy, aby się mieścił */
+ .summary-value.trend-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #374151;
+ }
+
+
+ @media (max-width: 900px) {
+    .stats-page-container {
+        grid-template-columns: 1fr; 
+    }
+    .stats-summary-container {
+        position: static; 
+    }
+ }

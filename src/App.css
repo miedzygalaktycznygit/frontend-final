@@ -254,3 +254,276 @@ body {
   .user-list-item > button {
     margin-left: auto;
   }
+
+ /* ================================================================= */
+ /* --- STYLE DLA STRONY STATYSTYK --- */
+ /* ================================================================= */
+
+ .stats-page-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr; 
+    gap: 1.5rem;
+    align-items: flex-start;
+ }
+
+ .stats-table-container { }
+
+ .year-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+ }
+
+ .year-navigation h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+ }
+
+ .stats-table {
+    width: 100%;
+    border-collapse: collapse; 
+ }
+
+ .stats-table th, .stats-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+ }
+
+ .stats-table th {
+    font-weight: 600;
+    background-color: #f9fafb;
+ }
+ 
+ .stats-table tbody tr:last-child td {
+    border-bottom: none;
+ }
+ 
+ /* NOWY STYL: Kontener dla pola input i podpowiedzi */
+ .input-with-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+ }
+
+ .input-with-suggestion .input-field {
+    margin-bottom: 0;
+    flex-grow: 1; /* Input zajmuje dostępną przestrzeń */
+ }
+
+ /* NOWY STYL: Tekst podpowiedzi */
+ .suggestion-text {
+    font-size: 0.875rem;
+    color: #6b7280;
+    white-space: nowrap; /* Zapobiega łamaniu tekstu */
+ }
+
+
+ .stats-summary-container {
+    position: sticky; 
+    top: 2rem;
+ }
+
+ .stats-summary-container h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 1rem;
+ }
+
+ .summary-item {
+    margin-bottom: 1.5rem;
+ }
+
+ .summary-item:last-child {
+    margin-bottom: 0;
+ }
+
+ .summary-item h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #6b7280;
+ }
+
+ .summary-item .summary-value {
+    margin: 0;
+    font-size: 1.25rem; /* Zmniejszono dla lepszego dopasowania */
+    font-weight: 700;
+    color: #4f46e5;
+ }
+ 
+ /* NOWY STYL: Specjalny styl dla tekstu prognozy, aby się mieścił */
+ .summary-value.trend-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #374151;
+ }
+
+
+ @media (max-width: 900px) {
+    .stats-page-container {
+        grid-template-columns: 1fr; 
+    }
+    .stats-summary-container {
+        position: static; 
+    }
+ }
+
+ /* ... Twoje istniejące style ... */
+
+/* DODAJ TE STYLE NA KOŃCU PLIKU */
+
+/* Style dla edytora zadań */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+/* Style dla okienka Popup */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup-content {
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.popup-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.task-summary-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+.task-summary-item:last-child {
+  border-bottom: none;
+}
+.task-summary-details h4 {
+  margin: 0 0 0.5rem 0;
+}
+.task-summary-details p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+.importance-dot {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+.importance-dot.niska { background-color: #5cb85c; }
+.importance-dot.normalna { background-color: #3174ad; }
+.importance-dot.wysoka { background-color: #d9534f; }
+
+/* Style dla edytora TipTap */
+.tiptap-container {
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+}
+
+.tiptap-menu {
+  padding: 0.5rem;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.tiptap-menu button {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  margin-right: 0.25rem;
+  cursor: pointer;
+}
+
+.tiptap-menu button.is-active {
+  background-color: #4f46e5;
+  color: #fff;
+}
+
+.ProseMirror {
+  padding: 0.75rem;
+  min-height: 150px;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* DODAJ NA KOŃCU PLIKU */
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.popup-header h2 {
+  margin: 0;
+}
+
+.popup-close-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+
+/* DODAJ NA KOŃCU PLIKU */
+.btn-danger {
+  background-color: #ef4444;
+  color: white;
+}
+.btn-danger:hover {
+  background-color: #dc2626;
+}
