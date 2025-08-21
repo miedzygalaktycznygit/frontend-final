@@ -1,5 +1,11 @@
 import React, { useState, createContext, useContext, useEffect, useCallback, useMemo } from 'react';
 
+import { requestNotificationPermission } from '../notification-manager'; 
+// NOWY IMPORT: Funkcja do nasłuchiwania wiadomości
+import { onMessage } from 'firebase/messaging';
+// NOWY IMPORT: Obiekt 'messaging' z Twojej konfiguracji
+import { messaging } from '../firebase-config';
+
 const API_URL = 'https://serwer-for-render.onrender.com/api';
 
 const AppContext = createContext(null);
@@ -45,6 +51,21 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // Ustawiamy nasłuchiwanie tylko jeśli użytkownik jest zalogowany
+    if (user) {
+      const unsubscribe = onMessage(messaging, (payload) => {
+        console.log('Otrzymano powiadomienie na żywo (foreground): ', payload);
+        
+        // Używamy alert() do testu, aby potwierdzić, że wiadomość dotarła
+        alert(`Nowe powiadomienie: ${payload.notification.title}`);
+      });
+
+      // Sprzątamy nasłuchiwacz po wylogowaniu lub zmianie komponentu
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (user) {
         setIsLoading(true);
         Promise.all([fetchUsers(), fetchCalendarTasks(user.id), fetchStats()])
@@ -74,6 +95,26 @@ export const AppProvider = ({ children }) => {
       if (!res.ok) return false;
       const loggedInUser = await res.json();
       setUser(loggedInUser);
+
+      // --- DOKŁADNIE TA SAMA LOGIKA CO POPRZEDNIO, ALE UŻYWA TWOJEJ FUNKCJI ---
+      console.log('Logowanie pomyślne, próba uzyskania tokenu powiadomień...');
+      const fcmToken = await requestNotificationPermission();
+      
+      if (fcmToken) {
+        console.log('Uzyskano token FCM, wysyłanie na serwer...');
+        try {
+          await fetch(`${API_URL}/register-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: loggedInUser.id, token: fcmToken }),
+          });
+          console.log('Token pomyślnie wysłany na serwer.');
+        } catch (tokenError) {
+          console.error('Nie udało się wysłać tokenu na serwer:', tokenError);
+        }
+      }
+      // --- KONIEC LOGIKI ---
+
       return true;
     } catch (error) {
       console.error("Błąd logowania:", error);

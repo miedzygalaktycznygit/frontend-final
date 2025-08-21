@@ -1,5 +1,7 @@
+// Plik: src/notification-manager.js
+
 import { getToken } from "firebase/messaging";
-import { messaging } from "./firebase-config"; // Upewnij się, że ten plik istnieje i eksportuje 'messaging'
+import { messaging } from "./firebase-config";
 
 export const requestNotificationPermission = async () => {
   try {
@@ -7,22 +9,23 @@ export const requestNotificationPermission = async () => {
 
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
-      console.log("Zgoda na powiadomienia została udzielona. Próba pobrania tokenu...");
-      
-      // Pozwalamy Firebase samemu zarządzać rejestracją i aktywacją Service Workera
+      console.log("Zgoda na powiadomienia udzielona. Pobieranie tokenu...");
       const currentToken = await getToken(messaging, { vapidKey: vapidKey });
       
       if (currentToken) {
-        console.log("✅ SUKCES! Oto Twój token:");
-        console.log(currentToken);
-        alert("Sukces! Token do powiadomień został pobrany. Skopiuj go z konsoli (F12).");
+        console.log("✅ Token FCM uzyskany:", currentToken);
+        // KLUCZOWA ZMIANA: Zwracamy token, aby AppContext mógł go użyć
+        return currentToken;
       } else {
-        console.log("❌ Nie udało się uzyskać tokenu. Sprawdź, czy Service Worker jest poprawny.");
+        console.log("❌ Nie udało się uzyskać tokenu.");
+        return null;
       }
     } else {
       console.log("Użytkownik nie wyraził zgody na powiadomienia.");
+      return null;
     }
   } catch (error) {
-    console.error("❌ Wystąpił błąd podczas pobierania tokenu:", error);
+    console.error("❌ Błąd podczas pobierania tokenu:", error);
+    return null;
   }
 };
