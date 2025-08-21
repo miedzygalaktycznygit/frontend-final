@@ -1,5 +1,3 @@
-// Plik: src/components/AppContext.jsx
-
 import React, { useState, createContext, useContext, useEffect, useCallback, useMemo } from 'react';
 
 const API_URL = 'https://serwer-for-render.onrender.com/api';
@@ -7,7 +5,12 @@ const API_URL = 'https://serwer-for-render.onrender.com/api';
 const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // ZMODYFIKOWANA linia: stan początkowy pobierany z localStorage
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  
   const [users, setUsers] = useState([]);
   const [calendarTasks, setCalendarTasks] = useState([]);
   const [stats, setStats] = useState([]);
@@ -52,6 +55,15 @@ export const AppProvider = ({ children }) => {
     }
   }, [user, fetchUsers, fetchCalendarTasks, fetchStats]);
 
+  // ZMODYFIKOWANY useEffect do zapisu stanu user w localStorage
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+  }, [user]);
+
   const login = async (username, password) => {
     try {
       const res = await fetch(`${API_URL}/login`, {
@@ -89,17 +101,14 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ZMODYFIKOWANA funkcja do publikowania zadania
   const publishTask = async (taskPayload, taskId) => {
     try {
-      // Jeśli to jest nowy task, najpierw go tworzymy jako szkic
       if (!taskId) {
         const newDraft = await saveOrUpdateTask(taskPayload, null);
         if (!newDraft) throw new Error("Nie udało się stworzyć szkicu przed publikacją.");
-        taskId = newDraft.id; // Używamy ID nowo utworzonego szkicu
+        taskId = newDraft.id;
       }
       
-      // Teraz publikujemy zadanie (nowe lub istniejące)
       const res = await fetch(`${API_URL}/tasks/${taskId}/publish`, { method: 'POST' });
       if (!res.ok) throw new Error('Błąd serwera przy publikacji zadania');
       
