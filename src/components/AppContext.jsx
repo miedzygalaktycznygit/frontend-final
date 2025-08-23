@@ -1,9 +1,6 @@
 import React, { useState, createContext, useContext, useEffect, useCallback, useMemo } from 'react';
-
 import { requestNotificationPermission } from '../notification-manager'; 
-// NOWY IMPORT: Funkcja do nasłuchiwania wiadomości
 import { onMessage } from 'firebase/messaging';
-// NOWY IMPORT: Obiekt 'messaging' z Twojej konfiguracji
 import { messaging } from '../firebase-config';
 
 const API_URL = 'https://serwer-for-render.onrender.com/api';
@@ -11,7 +8,6 @@ const API_URL = 'https://serwer-for-render.onrender.com/api';
 const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
-  // ZMODYFIKOWANA linia: stan początkowy pobierany z localStorage
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -22,6 +18,18 @@ export const AppProvider = ({ children }) => {
   const [stats, setStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // useEffect do obsługi powiadomień, gdy aplikacja jest aktywna (na pierwszym planie)
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = onMessage(messaging, (payload) => {
+        console.log('Otrzymano powiadomienie na żywo (foreground): ', payload);
+        alert(`Nowe powiadomienie: ${payload.notification.title}`);
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  // Funkcje do pobierania danych z serwera
   const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/users`);
@@ -50,21 +58,7 @@ export const AppProvider = ({ children }) => {
     } catch (error) { console.error(error); setStats([]); }
   }, []);
 
-  useEffect(() => {
-    // Ustawiamy nasłuchiwanie tylko jeśli użytkownik jest zalogowany
-    if (user) {
-      const unsubscribe = onMessage(messaging, (payload) => {
-        console.log('Otrzymano powiadomienie na żywo (foreground): ', payload);
-        
-        // Używamy alert() do testu, aby potwierdzić, że wiadomość dotarła
-        alert(`Nowe powiadomienie: ${payload.notification.title}`);
-      });
-
-      // Sprzątamy nasłuchiwacz po wylogowaniu lub zmianie komponentu
-      return () => unsubscribe();
-    }
-  }, [user]);
-
+  // Hooki do zarządzania stanem i synchronizacji
   useEffect(() => {
     if (user) {
         setIsLoading(true);
@@ -76,7 +70,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [user, fetchUsers, fetchCalendarTasks, fetchStats]);
 
-  // ZMODYFIKOWANY useEffect do zapisu stanu user w localStorage
   useEffect(() => {
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
@@ -84,7 +77,34 @@ export const AppProvider = ({ children }) => {
       localStorage.removeItem('user');
     }
   }, [user]);
+  
+  // ZMODYFIKOWANA CZĘŚĆ: Scentralizowana funkcja do włączania powiadomień
+  const enableNotifications = async (userObject) => {
+    const currentUser = userObject || user;
+    if (!currentUser) return;
 
+    try {
+      console.log('Prośba o zgodę na powiadomienia...');
+      const fcmToken = await requestNotificationPermission();
+      
+      if (fcmToken) {
+        console.log('Uzyskano token FCM, wysyłanie na serwer...');
+        await fetch(`${API_URL}/register-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUser.id, token: fcmToken }),
+        });
+        console.log('Token pomyślnie wysłany na serwer.');
+        if (!userObject) { // Pokaż alert tylko przy ręcznym kliknięciu
+          alert('Powiadomienia zostały włączone!');
+        }
+      }
+    } catch (error) {
+      console.error('Błąd podczas włączania powiadomień:', error);
+    }
+  };
+
+  // ZMODYFIKOWANA CZĘŚĆ: Funkcja login teraz używa scentralizowanej logiki
   const login = async (username, password) => {
     try {
       const res = await fetch(`${API_URL}/login`, {
@@ -96,24 +116,8 @@ export const AppProvider = ({ children }) => {
       const loggedInUser = await res.json();
       setUser(loggedInUser);
 
-      // --- DOKŁADNIE TA SAMA LOGIKA CO POPRZEDNIO, ALE UŻYWA TWOJEJ FUNKCJI ---
-      console.log('Logowanie pomyślne, próba uzyskania tokenu powiadomień...');
-      const fcmToken = await requestNotificationPermission();
-      
-      if (fcmToken) {
-        console.log('Uzyskano token FCM, wysyłanie na serwer...');
-        try {
-          await fetch(`${API_URL}/register-token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: loggedInUser.id, token: fcmToken }),
-          });
-          console.log('Token pomyślnie wysłany na serwer.');
-        } catch (tokenError) {
-          console.error('Nie udało się wysłać tokenu na serwer:', tokenError);
-        }
-      }
-      // --- KONIEC LOGIKI ---
+      // Automatyczne wywołanie prośby o zgodę po zalogowaniu
+      await enableNotifications(loggedInUser);
 
       return true;
     } catch (error) {
@@ -124,6 +128,7 @@ export const AppProvider = ({ children }) => {
   
   const logout = () => setUser(null);
 
+  // Pozostałe funkcje bez zmian
   const saveOrUpdateTask = async (taskData, taskId) => {
     try {
       const method = taskId ? 'PUT' : 'POST';
@@ -175,6 +180,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // ZMODYFIKOWANA CZĘŚĆ: Udostępniamy enableNotifications dla innych komponentów
   const value = useMemo(() => ({
     user,
     users,
@@ -189,7 +195,8 @@ export const AppProvider = ({ children }) => {
     saveOrUpdateTask,
     publishTask,
     deleteTask,
-    API_URL 
+    API_URL,
+    enableNotifications 
   }), [user, users, calendarTasks, stats, isLoading, fetchCalendarTasks]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

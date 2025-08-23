@@ -1,17 +1,18 @@
+// Plik: src/pages/Dashboard.jsx
+
 import React from 'react';
-import { useAppData } from './AppContext';
+import { useAppData } from '../components/AppContext'; // Poprawiona ścieżka
 import BossDashboard from './dashboards/BossDashboard';
 import EmployeeDashboard from './dashboards/EmployeeDashboard';
-// Import naszej nowej funkcji
-import { requestNotificationPermission } from '../notification-manager'; 
+// Nie potrzebujemy już importu z notification-manager
+// import { requestNotificationPermission } from '../notification-manager'; 
 
 export default function Dashboard() {
-  const { user, logout } = useAppData();
+  // Pobieramy z kontekstu wszystko, czego potrzebujemy, w tym nową funkcję
+  const { user, logout, enableNotifications } = useAppData();
 
-  const handleNotificationClick = () => {
-    // Prosimy o zgodę i pobieramy token po kliknięciu
-    requestNotificationPermission();
-  };
+  // Ta osobna funkcja nie jest już potrzebna, możemy wywołać 'enableNotifications' bezpośrednio
+  // const handleNotificationClick = () => { ... };
 
   const renderDashboard = () => {
     switch (user.role) {
@@ -31,10 +32,12 @@ export default function Dashboard() {
         <h1>System Zarządzania</h1>
         <div className="user-info">
           <span>Zalogowano jako: <span className="username">{user.username} ({user.role})</span></span>
-          {/* Nowy przycisk do testowania powiadomień */}
-          <button onClick={handleNotificationClick} className="btn btn-primary" style={{marginRight: '10px'}}>
+          
+          {/* Przycisk teraz wywołuje funkcję bezpośrednio z kontekstu */}
+          <button onClick={enableNotifications} className="btn btn-primary" style={{marginRight: '10px'}}>
             Włącz Powiadomienia
           </button>
+          
           <button onClick={logout} className="btn btn-secondary">Wyloguj</button>
         </div>
       </nav>
