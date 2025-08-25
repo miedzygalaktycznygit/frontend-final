@@ -5,6 +5,8 @@ import DayTasksPopup from '../tasks/DayTasksPopup';
 import UserManagement from '../users/UserManagement';
 import StatisticsPage from '../stats/StatisticsPage';
 import { useAppData } from '../AppContext';
+import AllTasksView from '../tasks/AllTasksPage';
+import TodayTasksView from '../tasks/TodayTasksView';
 
 export default function BossDashboard() {
   const [view, setView] = useState('calendar');
@@ -52,11 +54,15 @@ export default function BossDashboard() {
       </div>
       <nav className="dashboard-nav">
         <button onClick={() => setView('calendar')} className={view === 'calendar' ? 'active' : ''}>Kalendarz Zadań</button>
+        <button onClick={() => setView('todayTasks')} className={view === 'todayTasks' ? 'active' : ''}>Zadania na dzisiaj</button>
+        <button onClick={() => setView('allTasks')} className={view === 'allTasks' ? 'active' : ''}>Wszystkie Zadania</button>
         <button onClick={() => setView('users')} className={view === 'users' ? 'active' : ''}>Zarządzaj użytkownikami</button>
         <button onClick={() => setView('stats')} className={view === 'stats' ? 'active' : ''}>Statystyki</button>
       </nav>
       
       {view === 'calendar' && <TasksCalendarView onDayClick={handleDayClick} date={calendarDate} onNavigate={handleNavigate} />}
+      {view === 'todayTasks' && <TodayTasksView />}
+      {view === 'allTasks' && <AllTasksView />}
       {view === 'users' && <UserManagement />}
       {view === 'stats' && <StatisticsPage />}
 

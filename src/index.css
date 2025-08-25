@@ -373,3 +373,277 @@ body {
         position: static; 
     }
  }
+
+ /* Plik: src/App.css (NOWY KOD DO DODANIA NA KOŃCU) */
+
+.tasks-page-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.task-item {
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.task-item-info h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+}
+
+.task-item-info p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.task-item-actions .btn {
+  background-color: #10b981;
+  color: white;
+}
+.task-item-actions .btn:hover {
+  background-color: #059669;
+}
+
+/* =================================================================
+   --- Style dla widoku wszystkich zadań (AllTasksView) ---
+   ================================================================= */
+
+/* --- Główny kontener --- */
+.all-tasks-container {
+  padding: 20px;
+  background-color: #f9f9f9; /* Jasne tło dla odróżnienia */
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Delikatny cień */
+}
+
+.all-tasks-container h2 {
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+/* --- Wrapper dla responsywnej tabeli --- */
+.table-responsive {
+  overflow-x: auto; /* Kluczowe dla responsywności */
+}
+
+/* --- Tabela --- */
+.all-tasks-container .table {
+  width: 100%;
+  border-collapse: collapse; /* Złączenie ramek */
+  margin-top: 20px;
+}
+
+.all-tasks-container .table th,
+.all-tasks-container .table td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+.all-tasks-container .table th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+}
+
+/* --- Efekt "pasków zebry" dla lepszej czytelności --- */
+.all-tasks-container .table-striped tbody tr:nth-of-type(odd) {
+  background-color: #fdfdfd;
+}
+
+/* --- Efekt podświetlenia wiersza po najechaniu myszką --- */
+.all-tasks-container .table-hover tbody tr:hover {
+  background-color: #e9ecef;
+  cursor: pointer;
+}
+
+/* =================================================================
+   --- Odznaki statusu (StatusBadge) ---
+   ================================================================= */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  text-transform: capitalize;
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+}
+
+.status-w-toku {
+  background-color: #007bff; /* Niebieski */
+}
+
+.status-draft {
+  background-color: #6c757d; /* Szary */
+}
+
+.status-zakończone {
+  background-color: #28a745; /* Zielony */
+}
+
+.status-po-terminie {
+  background-color: #dc3545; /* Czerwony */
+}
+
+/* Domyślny styl, jeśli status nie pasuje do żadnego powyżej */
+.status-default {
+    background-color: #343a40; /* Ciemny */
+}
+
+/* =================================================================
+   --- Style dla ważności i przeterminowanych zadań ---
+   ================================================================= */
+
+/* --- Kolory wierszy w zależności od ważności --- */
+.importance-high {
+  background-color: #fff0f1 !important; /* Delikatny czerwony/różowy */
+  font-weight: 500;
+}
+
+.importance-low {
+  background-color: #f0fff0 !important; /* Delikatny zielony */
+}
+
+/* Poprawka dla zachowania efektu hover na kolorowych wierszach */
+.table-hover tbody tr.importance-high:hover {
+  background-color: #ffe0e2 !important;
+}
+
+.table-hover tbody tr.importance-low:hover {
+  background-color: #e0f8e0 !important;
+}
+
+
+/* --- Styl dla przeterminowanego terminu --- */
+.overdue-deadline {
+  color: #dc3545; /* Taki sam czerwony jak status "po terminie" */
+  font-weight: bold;
+}
+
+.overdue-deadline::after {
+    content: "  overdue"; /* Dodatkowy tekst informacyjny */
+    font-size: 0.8em;
+    font-style: italic;
+}
+
+/* =================================================================
+   --- Style dla panelu filtrów ---
+   ================================================================= */
+
+.filters-container {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f2f2f2;
+  border-radius: 8px;
+  flex-wrap: wrap; /* Aby filtry przenosiły się do nowej linii na mniejszych ekranach */
+}
+
+.filter-input,
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.filter-input {
+  flex: 2; /* Pole tekstowe zajmuje więcej miejsca */
+  min-width: 200px;
+}
+
+.filter-select {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* Styl dla klikalnych wierszy w tabeli */
+.clickable-row {
+  cursor: pointer;
+}
+
+/* =================================================================
+   --- Style dla okna modalnego (opisu zadania) ---
+   ================================================================= */
+
+.modal-overlay {
+  position: fixed; /* Pozycjonowanie względem okna przeglądarki */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6); /* Półprzezroczyste tło */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Upewnij się, że jest na wierzchu */
+}
+
+.modal-content {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 600px; /* Maksymalna szerokość okna */
+  position: relative;
+  max-height: 80vh; /* Maksymalna wysokość */
+  overflow-y: auto; /* Pasek przewijania, jeśli treść jest długa */
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #888;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+/* Style dla treści opisu wewnątrz modala */
+.task-description-content p {
+    line-height: 1.6;
+    color: #555;
+}
+.task-description-content ul, .task-description-content ol {
+    padding-left: 20px;
+}
+
+.task-view-icon {
+    cursor: pointer;
+    font-size: 1.2em;
+}
