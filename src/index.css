@@ -647,3 +647,81 @@ body {
     cursor: pointer;
     font-size: 1.2em;
 }
+
+/* =================================================================
+   --- NOWE STYLE DLA TABELI STATYSTYK ---
+   ================================================================= */
+
+.stats-table .month-row,
+.stats-table .week-row {
+    cursor: pointer;
+}
+
+.stats-table .day-row {
+    cursor: default;
+}
+
+.stats-table .month-row {
+    background-color: #f9fafb; /* Lekko szare tło dla miesięcy */
+    font-weight: bold;
+}
+
+.stats-table .week-row {
+    background-color: #ffffff;
+}
+
+.stats-table .day-row {
+    background-color: #fdfdfd;
+}
+
+.stats-table .day-row td:first-child {
+    padding-left: 4rem; /* Wcięcie dla dni */
+}
+
+.stats-table .week-row td:first-child {
+    padding-left: 2rem; /* Wcięcie dla tygodni */
+}
+
+.stats-table input[type="number"] {
+    width: 80px;
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background-color: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    text-align: center;
+}
+
+.stats-table input[type="number"]:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+.expand-btn {
+    background: none;
+    border: 1px solid #d1d5db;
+    color: #4f46e5;
+    font-weight: bold;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    line-height: 20px;
+    text-align: center;
+    border-radius: 50%;
+    margin-right: 10px;
+    transition: background-color 0.2s;
+}
+
+.expand-btn:hover {
+    background-color: #eef2ff;
+}
+
+/* Styl dla sumy miesięcznej, gdy jest tylko do odczytu */
+.monthly-sum {
+    display: inline-block;
+    padding: 4px 8px;
+    font-weight: normal;
+    text-align: center;
+    width: 80px;
+}

@@ -180,6 +180,51 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Funkcje zarządzania użytkownikami
+  const addUser = async (userData) => {
+    try {
+      const res = await fetch(`${API_URL}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      if (!res.ok) throw new Error('Błąd dodawania użytkownika');
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error("Błąd [addUser]:", error);
+      return false;
+    }
+  };
+
+  const updateUser = async (userData) => {
+    try {
+      const res = await fetch(`${API_URL}/users/${userData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      if (!res.ok) throw new Error('Błąd aktualizacji użytkownika');
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error("Błąd [updateUser]:", error);
+      return false;
+    }
+  };
+
+  const deleteUser = async (userId) => {
+    try {
+      const res = await fetch(`${API_URL}/users/${userId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Błąd usuwania użytkownika');
+      await fetchUsers();
+      return true;
+    } catch (error) {
+      console.error("Błąd [deleteUser]:", error);
+      return false;
+    }
+  };
+
   // ZMODYFIKOWANA CZĘŚĆ: Udostępniamy enableNotifications dla innych komponentów
   const value = useMemo(() => ({
     user,
@@ -192,6 +237,9 @@ export const AppProvider = ({ children }) => {
     fetchUsers,
     fetchCalendarTasks,
     fetchStats,
+    addUser,
+    updateUser,
+    deleteUser,
     saveOrUpdateTask,
     publishTask,
     deleteTask,
