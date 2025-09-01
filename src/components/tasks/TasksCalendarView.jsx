@@ -25,11 +25,22 @@ export default function TasksCalendarView({ onDayClick, date, onNavigate }) {
     console.log('TasksCalendarView - calendarTasks:', calendarTasks);
     return calendarTasks.map(task => {
       console.log('Processing task:', task);
+      
+      // WAŻNE: Dla zadań cyklicznych używamy deadline, dla zwykłych publication_date
+      const displayDate = task.recurring_task_id && task.deadline 
+        ? new Date(task.deadline) 
+        : new Date(task.publication_date);
+      
+      // Dodaj ikonę dla zadań cyklicznych
+      const displayTitle = task.recurring_task_id 
+        ? `🔄 ${task.title}` 
+        : task.title;
+      
       return {
         id: task.id,
-        title: task.title,
-        start: new Date(task.publication_date),
-        end: new Date(task.publication_date),
+        title: displayTitle,
+        start: displayDate,
+        end: displayDate,
         allDay: true,
         resource: task,
       };

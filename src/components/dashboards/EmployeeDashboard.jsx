@@ -32,9 +32,16 @@ export default function EmployeeDashboard() {
     }
   };
   
-  const tasksForSelectedDay = calendarTasks.filter(task => 
-    new Date(task.publication_date).toDateString() === new Date(selectedDate).toDateString()
-  );
+  const tasksForSelectedDay = calendarTasks.filter(task => {
+    if (!selectedDate) return false;
+    
+    // Dla zadań cyklicznych używamy deadline, dla zwykłych publication_date
+    const taskDate = task.recurring_task_id && task.deadline 
+      ? new Date(task.deadline) 
+      : new Date(task.publication_date);
+    
+    return taskDate.toDateString() === new Date(selectedDate).toDateString();
+  });
 
   return (
     <div>

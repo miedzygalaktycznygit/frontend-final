@@ -528,6 +528,19 @@ body {
   background-color: #dc2626;
 }
 
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.btn-warning {
+  background-color: #f59e0b;
+  color: white;
+}
+.btn-warning:hover {
+  background-color: #d97706;
+}
+
 /* Plik: src/App.css (NOWY KOD DO DODANIA NA KOŃCU) */
 
 .tasks-page-container {

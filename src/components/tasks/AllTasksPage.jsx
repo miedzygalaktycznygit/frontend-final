@@ -29,24 +29,56 @@ export default function AllTasksView() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTaskContent, setSelectedTaskContent] = useState('');
 
-    useEffect(() => {
-        const fetchAllTasks = async () => {
-            try {
-                const response = await fetch('https://serwer-for-render.onrender.com/api/tasks/all');
-                if (!response.ok) {
-                    throw new Error('Odpowiedź sieci nie była poprawna.');
-                }
-                const data = await response.json();
-                setTasks(data);
-            } catch (error) {
-                console.error("Błąd podczas pobierania wszystkich zadań:", error);
-                setError("Nie udało się załadować zadań. Spróbuj ponownie później.");
-            } finally {
-                setIsLoading(false);
+    const API_BASE_URL = 'https://serwer-for-render.onrender.com';
+
+    const fetchAllTasks = async () => {
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/tasks/all`);
+            if (!response.ok) {
+                throw new Error('Odpowiedź sieci nie była poprawna.');
             }
-        };
+            const data = await response.json();
+            setTasks(data);
+            setError(null);
+        } catch (error) {
+            console.error("Błąd podczas pobierania wszystkich zadań:", error);
+            setError("Nie udało się załadować zadań. Spróbuj ponownie później.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchAllTasks();
     }, []);
+
+    const handleDeleteTask = async (taskId, taskTitle) => {
+        const isConfirmed = window.confirm(
+            `Czy na pewno chcesz usunąć zadanie "${taskTitle}"?\n\nTa operacja jest nieodwracalna!`
+        );
+        
+        if (!isConfirmed) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error('Nie udało się usunąć zadania.');
+            }
+
+            // Odświeżamy listę zadań po usunięciu
+            await fetchAllTasks();
+            
+        } catch (error) {
+            console.error("Błąd podczas usuwania zadania:", error);
+            alert("Nie udało się usunąć zadania. Spróbuj ponownie później.");
+        }
+    };
     
     const getImportanceClass = (importance) => {
         if (!importance) return '';
@@ -158,6 +190,7 @@ export default function AllTasksView() {
                             <th>Termin</th>
                             <th>Ważność</th>
                             <th>Data publikacji</th>
+                            <th>Akcje</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -168,7 +201,14 @@ export default function AllTasksView() {
                                 className={`${getImportanceClass(task.importance)} clickable-row`}
                                 onClick={() => openModal(task.content_state)}
                             >
-                                <td>{task.title}</td>
+                                <td>
+                                    {task.recurring_task_id && (
+                                        <span style={{ marginRight: '5px', fontSize: '14px' }} title="Zadanie cykliczne">
+                                            🔄
+                                        </span>
+                                    )}
+                                    {task.title}
+                                </td>
                                 <td><StatusBadge status={task.status} /></td>
                                 {/* ZMIANA: Usunęliśmy komórkę z ikonką oka */}
                                 <td>{task.creatorName}</td>
@@ -178,11 +218,23 @@ export default function AllTasksView() {
                                 </td>
                                 <td>{task.importance}</td>
                                 <td>{new Date(task.publication_date).toLocaleString('pl-PL')}</td>
+                                <td>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Zapobiega otwieraniu modala
+                                            handleDeleteTask(task.id, task.title);
+                                        }}
+                                        className="btn btn-danger btn-sm"
+                                        title="Usuń zadanie"
+                                    >
+                                        🗑️
+                                    </button>
+                                </td>
                             </tr>
                         )) : (
                             <tr>
-                                {/* ZMIANA: Zmniejszamy colSpan z 8 na 7 */}
-                                <td colSpan="7">
+                                {/* ZMIANA: Zwiększamy colSpan z 7 na 8 (dodaliśmy kolumnę "Akcje") */}
+                                <td colSpan="8">
                                     {tasks.length === 0 
                                         ? "Nie znaleziono żadnych zadań w systemie."
                                         : "Brak zadań pasujących do kryteriów wyszukiwania."

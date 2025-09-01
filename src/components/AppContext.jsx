@@ -149,6 +149,12 @@ export const AppProvider = ({ children }) => {
 
   const publishTask = async (taskPayload, taskId) => {
     try {
+      // Sprawdź czy to zadanie cykliczne
+      if (taskPayload.isRecurring) {
+        return await createRecurringTasks(taskPayload);
+      }
+
+      // Standardowa logika dla zwykłych zadań
       if (!taskId) {
         const newDraft = await saveOrUpdateTask(taskPayload, null);
         if (!newDraft) throw new Error("Nie udało się stworzyć szkicu przed publikacją.");
@@ -164,6 +170,100 @@ export const AppProvider = ({ children }) => {
       console.error("Błąd [publishTask]:", error);
       return false;
     }
+  };
+
+  // Funkcja do tworzenia zadań cyklicznych
+  const createRecurringTasks = async (taskData) => {
+    try {
+      // Sprawdźmy i poprawmy dane przed wysłaniem
+      console.log('Dane zadania cyklicznego:', taskData);
+      
+      // 1. Najpierw tworzymy szablon zadania cyklicznego
+      const templateRes = await fetch(`${API_URL}/recurring-tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: taskData.title,
+          content_state: taskData.content_state,
+          importance: taskData.importance,
+          creator_id: parseInt(taskData.creator_id),
+          leader_id: taskData.leader_id ? parseInt(taskData.leader_id) : parseInt(taskData.creator_id),
+          start_date: taskData.start_date,
+          end_date: taskData.end_date,
+          recurrence_type: taskData.recurrence_type
+        })
+      });
+
+      if (!templateRes.ok) throw new Error('Błąd tworzenia szablonu zadania cyklicznego');
+      const template = await templateRes.json();
+
+      // 2. Generujemy wszystkie wystąpienia zadań
+      const tasks = generateTaskInstances(taskData, template.id);
+
+      // 3. Tworzymy wszystkie zadania na raz
+      for (const task of tasks) {
+        const taskRes = await fetch(`${API_URL}/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(task)
+        });
+
+        if (taskRes.ok) {
+          // Publikujemy każde zadanie od razu
+          const createdTask = await taskRes.json();
+          await fetch(`${API_URL}/tasks/${createdTask.id}/publish`, { method: 'POST' });
+        }
+      }
+
+      await fetchCalendarTasks(user.id);
+      return true;
+
+    } catch (error) {
+      console.error("Błąd [createRecurringTasks]:", error);
+      return false;
+    }
+  };
+
+  // Funkcja pomocnicza do generowania wystąpień zadań
+  const generateTaskInstances = (taskData, recurringTaskId) => {
+    const tasks = [];
+    const startDate = new Date(taskData.start_date);
+    const endDate = new Date(taskData.end_date);
+    let currentDate = new Date(startDate);
+    let instanceNumber = 1;
+
+    while (currentDate <= endDate) {
+      // WAŻNE: deadline = currentDate (data z cyklu, nie data utworzenia)
+      tasks.push({
+        title: `${taskData.title} #${instanceNumber}`,
+        content_state: taskData.content_state,
+        importance: taskData.importance,
+        creator_id: parseInt(taskData.creator_id),
+        leader_id: taskData.leader_id ? parseInt(taskData.leader_id) : parseInt(taskData.creator_id),
+        assignedUserIds: taskData.assignedUserIds,
+        deadline: currentDate.toISOString(),
+        recurring_task_id: recurringTaskId,
+        status: 'w toku'
+      });
+
+      // Oblicz następną datę
+      switch(taskData.recurrence_type) {
+        case 'daily':
+          currentDate.setDate(currentDate.getDate() + 1);
+          break;
+        case 'weekly':
+          currentDate.setDate(currentDate.getDate() + 7);
+          break;
+        case 'monthly':
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          break;
+        default:
+          currentDate.setDate(currentDate.getDate() + 7);
+      }
+      instanceNumber++;
+    }
+
+    return tasks;
   };
 
   const deleteTask = async (taskId) => {
@@ -244,7 +344,7 @@ export const AppProvider = ({ children }) => {
     publishTask,
     deleteTask,
     API_URL,
-    enableNotifications 
+    enableNotifications
   }), [user, users, calendarTasks, stats, isLoading, fetchCalendarTasks]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

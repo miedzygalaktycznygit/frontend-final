@@ -30,6 +30,14 @@ export default function TaskEditorPage() {
     importance: 'normalna',
   });
 
+  // Oddzielny stan dla pól cykliczności (nie zapisywane z zadaniem)
+  const [recurringData, setRecurringData] = useState({
+    isRecurring: false,
+    recurrence_type: 'weekly',
+    start_date: '',
+    end_date: ''
+  });
+
   const editor = useEditor({
     extensions: [StarterKit],
     content: task.content_state,
@@ -68,6 +76,12 @@ export default function TaskEditorPage() {
     setTask(currentTask => ({ ...currentTask, [name]: value }));
   };
 
+  const handleRecurringChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const fieldValue = type === 'checkbox' ? checked : value;
+    setRecurringData(current => ({ ...current, [name]: fieldValue }));
+  };
+
   const handleMultiSelectChange = (e) => {
     const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
     setTask(currentTask => ({ ...currentTask, assignedUserIds: selectedIds }));
@@ -90,9 +104,29 @@ export default function TaskEditorPage() {
 
   // ZMODYFIKOWANA LOGIKA PUBLIKACJI
   const handlePublish = async () => {
-    if (!task.title || task.assignedUserIds.length === 0 || !task.deadline) {
-      alert("Tytuł, termin oraz przynajmniej jeden przypisany użytkownik są wymagani do publikacji!");
+    // Walidacja podstawowa
+    if (!task.title || task.assignedUserIds.length === 0) {
+      alert("Tytuł oraz przynajmniej jeden przypisany użytkownik są wymagani do publikacji!");
       return;
+    }
+
+    // Walidacja dla zadań cyklicznych
+    if (recurringData.isRecurring) {
+      if (!recurringData.start_date || !recurringData.end_date) {
+        alert("Dla zadań cyklicznych wymagana jest data rozpoczęcia i zakończenia cyklu!");
+        return;
+      }
+      
+      if (new Date(recurringData.start_date) >= new Date(recurringData.end_date)) {
+        alert("Data rozpoczęcia musi być wcześniejsza niż data zakończenia!");
+        return;
+      }
+    } else {
+      // Dla zwykłych zadań wymagamy deadline
+      if (!task.deadline) {
+        alert("Termin wykonania jest wymagany dla zwykłych zadań!");
+        return;
+      }
     }
 
     // Przygotowujemy dane do wysłania
@@ -100,9 +134,10 @@ export default function TaskEditorPage() {
         ...task,
         creator_id: currentUser.id,
         assignedUserIds: task.assignedUserIds.map(id => parseInt(id, 10)),
+        // Dodajemy dane cykliczności jeśli potrzebne
+        ...(recurringData.isRecurring && recurringData)
     };
     
-    // Niezależnie czy to nowy task czy stary, wywołujemy tę samą funkcję
     const success = await publishTask(taskData, taskId);
     
     if (success) {
@@ -171,6 +206,62 @@ export default function TaskEditorPage() {
               <option value="wysoka">Wysoka</option>
             </select>
           </div>
+
+          {/* Sekcja zadań cyklicznych - oddzielne pola */}
+          <div className="form-group">
+            <label>
+              <input 
+                type="checkbox" 
+                name="isRecurring" 
+                checked={recurringData.isRecurring} 
+                onChange={handleRecurringChange}
+                style={{ marginRight: '8px' }}
+              />
+              Zadanie cykliczne
+            </label>
+          </div>
+
+          {recurringData.isRecurring && (
+            <div className="recurring-section" style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
+              <h4>Parametry cykliczności</h4>
+              
+              <div className="form-group">
+                <label>Typ cyklu</label>
+                <select name="recurrence_type" className="input-field" value={recurringData.recurrence_type} onChange={handleRecurringChange}>
+                  <option value="daily">Codziennie</option>
+                  <option value="weekly">Co tydzień</option>
+                  <option value="monthly">Co miesiąc</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Data rozpoczęcia cyklu</label>
+                <input 
+                  type="date" 
+                  name="start_date" 
+                  className="input-field" 
+                  value={recurringData.start_date} 
+                  onChange={handleRecurringChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Data zakończenia cyklu</label>
+                <input 
+                  type="date" 
+                  name="end_date" 
+                  className="input-field" 
+                  value={recurringData.end_date} 
+                  onChange={handleRecurringChange}
+                />
+              </div>
+
+              <p style={{ fontSize: '0.9em', color: '#666', fontStyle: 'italic' }}>
+                💡 Zadania będą generowane automatycznie od daty rozpoczęcia do daty zakończenia.
+                Termin wykonania zostanie zastąpiony datami z cyklu.
+              </p>
+            </div>
+          )}
 
           <div className="form-actions">
             {taskId && ( <button type="button" onClick={handleDelete} className="btn btn-danger" style={{ marginRight: 'auto' }}>Usuń szkic</button> )}
