@@ -121,43 +121,124 @@ export default function StatisticsPage() {
         return { totalSales, currentYearSales, trend };
     }, [stats, currentYear]);
 
+    const trendInfo = useMemo(() => {
+        const prevYearData = statsByDate[currentYear - 1];
+        if (!prevYearData) return null;
+
+        const getMonthValue = (year, m, product) => {
+            const aggregate = monthlyAggregates[year]?.[m]?.[product];
+            if (aggregate !== undefined) return aggregate;
+            const monthData = statsByDate[year]?.[m]?.['monthData'];
+            return monthData?.[product]?.ilosc ?? null;
+        };
+
+        const calculateTrendInfo = (product) => {
+            const trends = [];
+            const filledMonths = [];
+            
+            for (let month = 1; month <= 12; month++) {
+                const currentYearValue = getMonthValue(currentYear, month, product);
+                const prevYearValue = getMonthValue(currentYear - 1, month, product);
+                
+                if (currentYearValue !== null && currentYearValue > 0 && prevYearValue !== null && prevYearValue > 0) {
+                    const trendPercent = ((currentYearValue - prevYearValue) / prevYearValue) * 100;
+                    trends.push(trendPercent);
+                    filledMonths.push(month);
+                }
+            }
+            
+            if (trends.length > 0) {
+                const averageTrend = trends.reduce((sum, trend) => sum + trend, 0) / trends.length;
+                return {
+                    averageTrend: averageTrend,
+                    filledMonthsCount: trends.length,
+                    filledMonths: filledMonths
+                };
+            }
+            
+            return null;
+        };
+
+        return {
+            PL: calculateTrendInfo('PL'),
+            '1 EURO': calculateTrendInfo('1 EURO'),
+            '2 EURO': calculateTrendInfo('2 EURO')
+        };
+    }, [statsByDate, monthlyAggregates, currentYear]);
+
     const seasonalSuggestions = useMemo(() => {
         const suggestions = {};
         const prevYearData = statsByDate[currentYear - 1];
         if (!prevYearData) return suggestions;
 
-        for (let month = 1; month <= 12; month++) {
-            const prevMonth = month - 1;
-            if (prevMonth < 1) continue;
+        const getMonthValue = (year, m, product) => {
+            const aggregate = monthlyAggregates[year]?.[m]?.[product];
+            if (aggregate !== undefined) return aggregate;
+            const monthData = statsByDate[year]?.[m]?.['monthData'];
+            return monthData?.[product]?.ilosc ?? null;
+        };
 
-            const getMonthValue = (year, m, product) => {
-                const aggregate = monthlyAggregates[year]?.[m]?.[product];
-                if (aggregate !== undefined) return aggregate;
-                const monthData = statsByDate[year]?.[m]?.['monthData'];
-                return monthData?.[product]?.ilosc ?? null;
-            };
+        // Nowa logika: oblicz średni trend z wszystkich uzupełnionych miesięcy w bieżącym roku
+        const calculateAverageTrend = (product) => {
+            const trends = [];
             
-            const val1 = getMonthValue(currentYear, prevMonth, 'PL');
-            const val2 = getMonthValue(currentYear - 1, prevMonth, 'PL');
-            const val3 = getMonthValue(currentYear - 1, month, 'PL');
-            if (val1 > 0 && val2 > 0 && val3 !== null) {
-                suggestions[`${month}_PL`] = Math.round(val1 * (val3 / val2));
+            for (let month = 1; month <= 12; month++) {
+                const currentYearValue = getMonthValue(currentYear, month, product);
+                const prevYearValue = getMonthValue(currentYear - 1, month, product);
+                
+                // Sprawdź czy mamy dane dla obu lat w tym miesiącu
+                if (currentYearValue !== null && currentYearValue > 0 && prevYearValue !== null && prevYearValue > 0) {
+                    const trendPercent = ((currentYearValue - prevYearValue) / prevYearValue) * 100;
+                    trends.push(trendPercent);
+                }
+            }
+            
+            // Jeśli mamy co najmniej jeden miesiąc z danymi, oblicz średnią
+            if (trends.length > 0) {
+                const averageTrend = trends.reduce((sum, trend) => sum + trend, 0) / trends.length;
+                return averageTrend / 100; // Konwertuj z procent na współczynnik (np. 50% = 0.5)
+            }
+            
+            return null; // Brak danych do obliczenia trendu
+        };
+
+        // Oblicz średnie trendy dla każdego produktu
+        const trendPL = calculateAverageTrend('PL');
+        const trend1Euro = calculateAverageTrend('1 EURO');
+        const trend2Euro = calculateAverageTrend('2 EURO');
+
+        // Generuj sugestie dla wszystkich miesięcy na podstawie średniego trendu
+        for (let month = 1; month <= 12; month++) {
+            // Sprawdź czy miesiąc nie jest już uzupełniony
+            const currentPL = getMonthValue(currentYear, month, 'PL');
+            const current1Euro = getMonthValue(currentYear, month, '1 EURO');
+            const current2Euro = getMonthValue(currentYear, month, '2 EURO');
+
+            // Sugestie dla PL
+            if ((currentPL === null || currentPL === 0) && trendPL !== null) {
+                const prevYearPL = getMonthValue(currentYear - 1, month, 'PL');
+                if (prevYearPL !== null && prevYearPL > 0) {
+                    suggestions[`${month}_PL`] = Math.round(prevYearPL * (1 + trendPL));
+                }
             }
 
-            const val1_euro1 = getMonthValue(currentYear, prevMonth, '1 EURO');
-            const val2_euro1 = getMonthValue(currentYear - 1, prevMonth, '1 EURO');
-            const val3_euro1 = getMonthValue(currentYear - 1, month, '1 EURO');
-            if (val1_euro1 > 0 && val2_euro1 > 0 && val3_euro1 !== null) {
-                suggestions[`${month}_1 EURO`] = Math.round(val1_euro1 * (val3_euro1 / val2_euro1));
+            // Sugestie dla 1 EURO
+            if ((current1Euro === null || current1Euro === 0) && trend1Euro !== null) {
+                const prevYear1Euro = getMonthValue(currentYear - 1, month, '1 EURO');
+                if (prevYear1Euro !== null && prevYear1Euro > 0) {
+                    suggestions[`${month}_1 EURO`] = Math.round(prevYear1Euro * (1 + trend1Euro));
+                }
             }
 
-            const val1_euro2 = getMonthValue(currentYear, prevMonth, '2 EURO');
-            const val2_euro2 = getMonthValue(currentYear - 1, prevMonth, '2 EURO');
-            const val3_euro2 = getMonthValue(currentYear - 1, month, '2 EURO');
-            if (val1_euro2 > 0 && val2_euro2 > 0 && val3_euro2 !== null) {
-                suggestions[`${month}_2 EURO`] = Math.round(val1_euro2 * (val3_euro2 / val2_euro2));
+            // Sugestie dla 2 EURO
+            if ((current2Euro === null || current2Euro === 0) && trend2Euro !== null) {
+                const prevYear2Euro = getMonthValue(currentYear - 1, month, '2 EURO');
+                if (prevYear2Euro !== null && prevYear2Euro > 0) {
+                    suggestions[`${month}_2 EURO`] = Math.round(prevYear2Euro * (1 + trend2Euro));
+                }
             }
         }
+
         return suggestions;
     }, [statsByDate, monthlyAggregates, currentYear]);
 
@@ -254,7 +335,11 @@ export default function StatisticsPage() {
                                                     minWidth: '60px',
                                                     textAlign: 'center'
                                                 }}>{plValue || 0}</span>
-                                                {seasonalSuggestions[`${month}_PL`] && <span className="suggestion-text">(sug: {seasonalSuggestions[`${month}_PL`]})</span>}
+                                                {seasonalSuggestions[`${month}_PL`] && (
+                                                    <span className="suggestion-text" title={`Sugestia na podstawie średniego trendu z uzupełnionych miesięcy ${currentYear} roku`}>
+                                                        (trend: {seasonalSuggestions[`${month}_PL`]})
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td>
@@ -268,7 +353,11 @@ export default function StatisticsPage() {
                                                     minWidth: '60px',
                                                     textAlign: 'center'
                                                 }}>{euro1Value || 0}</span>
-                                                {seasonalSuggestions[`${month}_1 EURO`] && <span className="suggestion-text">(sug: {seasonalSuggestions[`${month}_1 EURO`]})</span>}
+                                                {seasonalSuggestions[`${month}_1 EURO`] && (
+                                                    <span className="suggestion-text" title={`Sugestia na podstawie średniego trendu z uzupełnionych miesięcy ${currentYear} roku`}>
+                                                        (trend: {seasonalSuggestions[`${month}_1 EURO`]})
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td>
@@ -282,7 +371,11 @@ export default function StatisticsPage() {
                                                     minWidth: '60px',
                                                     textAlign: 'center'
                                                 }}>{euro2Value || 0}</span>
-                                                {seasonalSuggestions[`${month}_2 EURO`] && <span className="suggestion-text">(sug: {seasonalSuggestions[`${month}_2 EURO`]})</span>}
+                                                {seasonalSuggestions[`${month}_2 EURO`] && (
+                                                    <span className="suggestion-text" title={`Sugestia na podstawie średniego trendu z uzupełnionych miesięcy ${currentYear} roku`}>
+                                                        (trend: {seasonalSuggestions[`${month}_2 EURO`]})
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -306,6 +399,72 @@ export default function StatisticsPage() {
                 <div className="summary-item">
                     <h4>Prognoza na następny rok</h4>
                     <p className="summary-value trend-text">{summary.trend}</p>
+                </div>
+                
+                {/* Nowa sekcja z informacjami o trendzie sugestii */}
+                {trendInfo && (
+                    <div className="summary-item">
+                        <h4>Aktualne trendy w {currentYear} roku</h4>
+                        <div style={{ fontSize: '0.9em', lineHeight: '1.5' }}>
+                            {Object.entries(trendInfo).map(([product, info]) => {
+                                if (!info) return null;
+                                const trendDirection = info.averageTrend >= 0 ? 'wzrost' : 'spadek';
+                                const monthNames = ["", "Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"];
+                                const filledMonthNames = info.filledMonths.map(m => monthNames[m]).join(', ');
+                                
+                                return (
+                                    <p key={product} style={{ margin: '0.5em 0' }}>
+                                        <strong>{product}:</strong> {trendDirection} o {Math.abs(info.averageTrend).toFixed(1)}% 
+                                        <br />
+                                        <span style={{ fontSize: '0.85em', color: '#666' }}>
+                                            (na podstawie {info.filledMonthsCount} miesięcy: {filledMonthNames})
+                                        </span>
+                                    </p>
+                                );
+                            })}
+                            {Object.values(trendInfo).every(info => !info) && (
+                                <p style={{ color: '#666', fontStyle: 'italic' }}>
+                                    Brak danych do obliczenia trendów. Uzupełnij przynajmniej jeden miesiąc w {currentYear} roku.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Nowa sekcja z planowaną produkcją */}
+                <div className="summary-item">
+                    <h4>Planowana produkcja do końca {currentYear} roku</h4>
+                    <div style={{ fontSize: '0.9em', lineHeight: '1.5' }}>
+                        {Object.entries(['PL', '1 EURO', '2 EURO']).map(([index, product]) => {
+                            // Oblicz sumę sugestii dla tego produktu
+                            const plannedProduction = Object.entries(seasonalSuggestions)
+                                .filter(([key]) => key.endsWith(`_${product}`))
+                                .reduce((sum, [, value]) => sum + value, 0);
+
+                            return (
+                                <p key={product} style={{ margin: '0.5em 0' }}>
+                                    <strong>{product}:</strong> {plannedProduction.toLocaleString('pl-PL')} szt.
+                                    {plannedProduction === 0 && (
+                                        <span style={{ fontSize: '0.85em', color: '#666' }}> (brak sugestii)</span>
+                                    )}
+                                </p>
+                            );
+                        })}
+                        
+                        {/* Suma wszystkich produktów */}
+                        {(() => {
+                            const totalPlanned = Object.values(seasonalSuggestions).reduce((sum, value) => sum + value, 0);
+                            return totalPlanned > 0 ? (
+                                <p style={{ margin: '0.8em 0 0 0', paddingTop: '0.5em', borderTop: '1px solid #eee', fontWeight: 'bold' }}>
+                                    <strong>Razem:</strong> {totalPlanned.toLocaleString('pl-PL')} szt.
+                                </p>
+                            ) : (
+                                <p style={{ color: '#666', fontStyle: 'italic', margin: '0.5em 0' }}>
+                                    Brak aktywnych sugestii produkcji.
+                                </p>
+                            );
+                        })()}
+                    </div>
                 </div>
             </div>
         </div>

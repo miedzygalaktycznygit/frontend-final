@@ -17,7 +17,8 @@ export default function DayTasksPopup({ date, tasks, onClose }) {
                 <span className={`importance-dot ${task.importance}`}></span>
                 <div className="task-summary-details">
                   <h4>{task.title}</h4>
-                  <p>Termin: {new Date(task.deadline).toLocaleString('pl-PL')}</p>
+                  <p>Termin wykonania: {task.deadline ? new Date(task.deadline).toLocaleString('pl-PL') : 'Brak'}</p>
+                  <p>Data utworzenia: {new Date(task.publication_date).toLocaleString('pl-PL')}</p>
                   <p>Lider: {task.leaderName || 'Brak'}</p>
                   <p>Przypisani: {task.assignedUsers.join(', ')}</p>
                 </div>

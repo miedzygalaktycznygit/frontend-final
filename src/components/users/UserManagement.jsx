@@ -49,6 +49,17 @@ export default function UserManagement() {
         setShowCreateForm(true);
     };
 
+    // Funkcja do usuwania użytkownika z potwierdzeniem
+    const handleDeleteUser = (user) => {
+        const isConfirmed = window.confirm(
+            `Czy na pewno chcesz usunąć użytkownika "${user.username}"?\n\nTa operacja jest nieodwracalna i usunie wszystkie dane związane z tym użytkownikiem.`
+        );
+        
+        if (isConfirmed) {
+            deleteUser(user.id);
+        }
+    };
+
     return (
         <div>
             <div className="task-header">
@@ -87,7 +98,7 @@ export default function UserManagement() {
                                 <span>{u.username}</span><span className="role">{u.role} {u.subRole && `(${u.subRole})`}</span>
                                 <div>
                                     <button onClick={() => handleEditClick(u)} className='btn btn-secondary'>Edytuj</button>
-                                    <button onClick={() => deleteUser(u.id)} className='btn btn-danger'>Usuń</button>
+                                    <button onClick={() => handleDeleteUser(u)} className='btn btn-danger'>Usuń</button>
                                 </div>
                             </li>
                         ))

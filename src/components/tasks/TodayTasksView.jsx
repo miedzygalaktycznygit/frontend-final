@@ -13,7 +13,7 @@ export default function TodayTasksView() {
 
     const API_BASE_URL = 'https://serwer-for-render.onrender.com';
 
-    // Nowa logika filtrowania zadań na dzisiaj
+    // Nowa logika filtrowania zadań przypisanych do użytkownika
     useEffect(() => {
         if (!currentUser || !calendarTasks) {
             setTasks([]);
@@ -22,61 +22,64 @@ export default function TodayTasksView() {
         }
 
         try {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const todayEnd = new Date();
-            todayEnd.setHours(23, 59, 59, 999);
-
-            // Filtrujemy zadania na dzisiaj (tylko aktywne)
-            let todayTasks = calendarTasks.filter(task => {
+            // Filtrujemy zadania przypisane do użytkownika (bez ograniczenia dat)
+            let userTasks = calendarTasks.filter(task => {
                 // Sprawdź czy zadanie jest przypisane do użytkownika
                 const isAssigned = task.assignedUsers && task.assignedUsers.includes(currentUser.username);
                 
                 // Sprawdź czy zadanie nie jest zakończone
-                const isActive = task.status === 'w toku' || task.status === 'draft';
+                const isNotCompleted = task.status !== 'zakończone';
                 
-                // Sprawdź czy zadanie jest na dzisiaj (używamy deadline dla zadań cyklicznych)
-                const taskDate = task.recurring_task_id && task.deadline 
-                    ? new Date(task.deadline) 
-                    : new Date(task.publication_date);
-                const isToday = taskDate >= today && taskDate <= todayEnd;
-                
-                return isAssigned && isActive && isToday;
+                return isAssigned && isNotCompleted;
             });
 
-            // Dla zadań cyklicznych pokazuj tylko pierwsze aktywne z każdej serii
+            // Dla zadań cyklicznych pokazuj tylko pierwsze niewykonane z każdej serii
             const recurringGroups = {};
             const filteredTasks = [];
 
-            todayTasks.forEach(task => {
+            userTasks.forEach(task => {
                 if (task.recurring_task_id) {
                     // To jest zadanie cykliczne - grupuj według recurring_task_id
                     if (!recurringGroups[task.recurring_task_id]) {
-                        recurringGroups[task.recurring_task_id] = task;
-                    } else {
-                        // Porównaj numery w tytule (#1, #2, itd.) - wybierz z najmniejszym numerem
-                        const currentMatch = task.title.match(/#(\d+)$/);
-                        const existingMatch = recurringGroups[task.recurring_task_id].title.match(/#(\d+)$/);
-                        
-                        if (currentMatch && existingMatch) {
-                            const currentNum = parseInt(currentMatch[1]);
-                            const existingNum = parseInt(existingMatch[1]);
-                            
-                            if (currentNum < existingNum) {
-                                recurringGroups[task.recurring_task_id] = task;
-                            }
-                        }
+                        recurringGroups[task.recurring_task_id] = [];
                     }
+                    recurringGroups[task.recurring_task_id].push(task);
                 } else {
                     // To jest zwykłe zadanie - dodaj bezpośrednio
                     filteredTasks.push(task);
                 }
             });
 
-            // Dodaj pierwsze zadania z każdej serii cyklicznej
-            Object.values(recurringGroups).forEach(task => {
-                filteredTasks.push(task);
+            // Dla każdej grupy zadań cyklicznych, znajdź pierwsze niewykonane
+            Object.values(recurringGroups).forEach(taskGroup => {
+                // Sortuj zadania według numeru w tytule (#1, #2, #3...)
+                const sortedTasks = taskGroup.sort((a, b) => {
+                    const matchA = a.title.match(/#(\d+)$/);
+                    const matchB = b.title.match(/#(\d+)$/);
+                    
+                    if (matchA && matchB) {
+                        return parseInt(matchA[1]) - parseInt(matchB[1]);
+                    }
+                    
+                    // Fallback - sortuj według deadline
+                    const dateA = a.deadline ? new Date(a.deadline) : new Date(a.publication_date);
+                    const dateB = b.deadline ? new Date(b.deadline) : new Date(b.publication_date);
+                    return dateA - dateB;
+                });
+
+                // Znajdź pierwsze zadanie które nie jest zakończone
+                const firstIncomplete = sortedTasks.find(task => task.status !== 'zakończone');
+                
+                if (firstIncomplete) {
+                    filteredTasks.push(firstIncomplete);
+                }
+            });
+
+            // Sortuj zadania według priorytetu (deadline) - najwcześniejsze pierwsze
+            filteredTasks.sort((a, b) => {
+                const dateA = a.deadline ? new Date(a.deadline) : new Date(a.publication_date);
+                const dateB = b.deadline ? new Date(b.deadline) : new Date(b.publication_date);
+                return dateA - dateB;
             });
 
             setTasks(filteredTasks);
@@ -101,12 +104,13 @@ export default function TodayTasksView() {
                 throw new Error('Nie udało się zaktualizować statusu.');
             }
 
-            // Dla zadań cyklicznych - po zmianie statusu odświeżamy calendarTasks
-            // żeby przeliczyć które zadanie ma się pokazać jako następne
+            // Po zmianie statusu odświeżamy calendarTasks
+            // Dla zadań cyklicznych - po oznaczeniu jako zakończone pokaże się następne z serii
             await fetchCalendarTasks(currentUser.id);
 
         } catch (err) {
             console.error("Błąd podczas zmiany statusu:", err);
+            alert("Wystąpił błąd podczas zmiany statusu zadania.");
         }
     };
 
@@ -129,14 +133,15 @@ export default function TodayTasksView() {
 
     return (
         <div className="all-tasks-container">
-            <h2>Aktywne zadania</h2>
-            <p>Lista wszystkich zadań przypisanych do Ciebie, które nie zostały jeszcze zakończone.</p>
+            <h2>Moje zadania</h2>
+ 
             <div className="table-responsive">
                 <table className="table table-striped table-hover">
                     <thead>
                         <tr>
                             <th>Tytuł</th>
-                            <th>Termin</th>
+                            <th>Termin wykonania</th>
+                            <th>Data utworzenia</th>
                             <th>Ważność</th>
                             <th>Status</th>
                         </tr>
@@ -151,14 +156,22 @@ export default function TodayTasksView() {
                             >
                                 <td>
                                     {task.recurring_task_id && (
-                                        <span style={{ marginRight: '5px', fontSize: '14px' }} title="Zadanie cykliczne">
+                                        <span style={{ marginRight: '8px', fontSize: '14px' }} title="Zadanie cykliczne - wyświetlane jest pierwsze niewykonane zadanie z serii">
                                             🔄
                                         </span>
                                     )}
                                     {task.title}
+                                    {task.recurring_task_id && (
+                                        <small style={{ display: 'block', color: '#666', fontSize: '0.8em', marginTop: '2px' }}>
+                                            Zadanie cykliczne
+                                        </small>
+                                    )}
                                 </td>
                                 <td className={new Date(task.deadline) < new Date() && task.status !== 'zakończone' ? 'overdue-deadline' : ''}>
                                     {task.deadline ? new Date(task.deadline).toLocaleDateString('pl-PL') : 'Brak'}
+                                </td>
+                                <td>
+                                    {new Date(task.publication_date).toLocaleDateString('pl-PL')}
                                 </td>
                                 <td>{task.importance}</td>
                                 <td>
@@ -177,7 +190,11 @@ export default function TodayTasksView() {
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan="4">Brak aktywnych zadań. Dobra robota!</td>
+                                <td colSpan="5">
+                                    Brak zadań do wykonania. Świetnie! 🎉
+                                    <br />
+
+                                </td>
                             </tr>
                         )}
                     </tbody>

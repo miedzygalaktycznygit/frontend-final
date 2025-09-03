@@ -26,8 +26,8 @@ export default function TasksCalendarView({ onDayClick, date, onNavigate }) {
     return calendarTasks.map(task => {
       console.log('Processing task:', task);
       
-      // WAŻNE: Dla zadań cyklicznych używamy deadline, dla zwykłych publication_date
-      const displayDate = task.recurring_task_id && task.deadline 
+      // ZMIANA: Wszystkie zadania wyświetlamy na dacie deadline, fallback to publication_date
+      const displayDate = task.deadline 
         ? new Date(task.deadline) 
         : new Date(task.publication_date);
       

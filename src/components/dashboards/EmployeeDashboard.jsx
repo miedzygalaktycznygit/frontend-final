@@ -35,8 +35,8 @@ export default function EmployeeDashboard() {
   const tasksForSelectedDay = calendarTasks.filter(task => {
     if (!selectedDate) return false;
     
-    // Dla zadań cyklicznych używamy deadline, dla zwykłych publication_date
-    const taskDate = task.recurring_task_id && task.deadline 
+    // ZMIANA: Wszystkie zadania używają deadline, fallback to publication_date
+    const taskDate = task.deadline 
       ? new Date(task.deadline) 
       : new Date(task.publication_date);
     
