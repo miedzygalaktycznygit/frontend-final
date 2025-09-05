@@ -5,7 +5,7 @@ import { Routes, Route } from 'react-router-dom';
 import { AppProvider } from './components/AppContext';
 import Main from './components/Main';
 import TaskEditorPage from './pages/TaskEditorPage';
-import FCMTestPanel from './components/FCMTestPanel';
+import NotificationControlPanel from './components/FCMTestPanel';
 import './App.css';
 
 export default function App() {
@@ -22,8 +22,8 @@ export default function App() {
         <Route path="/zadanie/edytuj/:taskId" element={<TaskEditorPage />} />
       </Routes>
       
-      {/* Panel testowy FCM - pojawi się na wszystkich stronach */}
-      <FCMTestPanel />
+      {/* Panel sterowania powiadomieniami - pojawi się na wszystkich stronach */}
+      <NotificationControlPanel />
     </AppProvider>
   );
 }

@@ -1,116 +1,118 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppData } from './AppContext';
 import { requestNotificationPermission, registerToken, unregisterToken } from '../notification-manager';
 
-const FCMTestPanel = () => {
+const NotificationControlPanel = () => {
   const { user } = useAppData();
-  const [testResults, setTestResults] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState('unknown'); // 'enabled', 'disabled', 'unknown'
 
-  const addTestResult = (message, type = 'info') => {
-    const timestamp = new Date().toLocaleTimeString();
-    setTestResults(prev => [...prev, { message, type, timestamp }]);
-  };
+  // Sprawdź status powiadomień przy załadowaniu
+  useEffect(() => {
+    checkNotificationStatus();
+  }, [user]);
 
-  const clearResults = () => setTestResults([]);
+  const checkNotificationStatus = () => {
+    if (!user) {
+      setNotificationStatus('disabled');
+      return;
+    }
 
-  // Test 1: Podstawowy test tokenu FCM
-  const testFCMToken = async () => {
-    try {
-      addTestResult('🧪 TEST: Pobieranie tokenu FCM...', 'info');
-      const token = await requestNotificationPermission();
-      
-      if (token) {
-        addTestResult(`✅ Token uzyskany: ${token.substring(0, 20)}...`, 'success');
+    // Sprawdź czy przeglądarka obsługuje powiadomienia i czy są włączone
+    if ('Notification' in window) {
+      const permission = Notification.permission;
+      if (permission === 'granted') {
+        setNotificationStatus('enabled');
+      } else if (permission === 'denied') {
+        setNotificationStatus('disabled');
       } else {
-        addTestResult('❌ Nie udało się uzyskać tokenu', 'error');
+        setNotificationStatus('unknown');
       }
-    } catch (error) {
-      addTestResult(`❌ Błąd: ${error.message}`, 'error');
+    } else {
+      setNotificationStatus('disabled');
     }
   };
 
-  // Test 2: Rejestracja tokenu na serwerze
-  const testRegisterToken = async () => {
+  const addNotification = (message, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const newNotification = { message, type, timestamp, id: Date.now() };
+    setNotifications(prev => [newNotification, ...prev.slice(0, 4)]); // Zachowaj tylko 5 najnowszych
+
+    // Automatycznie usuń powiadomienie po 5 sekundach
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+    }, 5000);
+  };
+
+  const enableNotifications = async () => {
     if (!user) {
-      addTestResult('❌ Musisz być zalogowany!', 'error');
+      addNotification('❌ Musisz być zalogowany aby włączyć powiadomienia!', 'error');
       return;
     }
 
     try {
-      addTestResult('🧪 TEST: Rejestracja tokenu na serwerze...', 'info');
+      addNotification('🔄 Włączanie powiadomień...', 'info');
       const token = await requestNotificationPermission();
       
       if (token) {
         const success = await registerToken(user.id, token);
         if (success) {
-          addTestResult('✅ Token zarejestrowany na serwerze', 'success');
+          setNotificationStatus('enabled');
+          addNotification('✅ Powiadomienia zostały włączone!', 'success');
         } else {
-          addTestResult('❌ Błąd rejestracji na serwerze', 'error');
+          addNotification('❌ Błąd podczas włączania powiadomień', 'error');
         }
+      } else {
+        setNotificationStatus('disabled');
+        addNotification('❌ Brak zgody na powiadomienia', 'error');
       }
     } catch (error) {
-      addTestResult(`❌ Błąd: ${error.message}`, 'error');
+      addNotification(`❌ Błąd: ${error.message}`, 'error');
     }
   };
 
-  // Test 3: Usuwanie tokenu z serwera
-  const testUnregisterToken = async () => {
+  const disableNotifications = async () => {
     if (!user) {
-      addTestResult('❌ Musisz być zalogowany!', 'error');
+      addNotification('❌ Musisz być zalogowany!', 'error');
       return;
     }
 
     try {
-      addTestResult('🧪 TEST: Usuwanie tokenu z serwera...', 'info');
+      addNotification('🔄 Wyłączanie powiadomień...', 'info');
       const token = await requestNotificationPermission();
       
       if (token) {
         const success = await unregisterToken(user.id, token);
         if (success) {
-          addTestResult('✅ Token usunięty z serwera', 'success');
+          setNotificationStatus('disabled');
+          addNotification('✅ Powiadomienia zostały wyłączone!', 'success');
         } else {
-          addTestResult('❌ Błąd usuwania z serwera', 'error');
+          addNotification('❌ Błąd podczas wyłączania powiadomień', 'error');
         }
+      } else {
+        addNotification('⚠️ Nie można uzyskać tokenu do wyłączenia', 'warning');
       }
     } catch (error) {
-      addTestResult(`❌ Błąd: ${error.message}`, 'error');
+      addNotification(`❌ Błąd: ${error.message}`, 'error');
     }
   };
 
-  // Test 4: Symulacja wielu urządzeń
-  const testMultiDevice = async () => {
-    if (!user) {
-      addTestResult('❌ Musisz być zalogowany!', 'error');
-      return;
-    }
+  const clearNotifications = () => setNotifications([]);
 
-    try {
-      addTestResult('🧪 TEST: Symulacja wielu urządzeń...', 'info');
-      
-      // Symulacja 3 różnych tokenów
-      const fakeTokens = [
-        'fake_token_device_1_' + Date.now(),
-        'fake_token_device_2_' + Date.now(),
-        'fake_token_device_3_' + Date.now()
-      ];
-
-      for (let i = 0; i < fakeTokens.length; i++) {
-        const success = await registerToken(user.id, fakeTokens[i]);
-        if (success) {
-          addTestResult(`✅ Urządzenie ${i + 1} zarejestrowane`, 'success');
-        } else {
-          addTestResult(`❌ Błąd rejestracji urządzenia ${i + 1}`, 'error');
-        }
-      }
-
-      addTestResult('ℹ️ Sprawdź w bazie danych czy wszystkie 3 tokeny zostały dodane', 'info');
-    } catch (error) {
-      addTestResult(`❌ Błąd: ${error.message}`, 'error');
+  const getStatusInfo = () => {
+    switch (notificationStatus) {
+      case 'enabled':
+        return { text: 'Włączone', color: '#28a745', icon: '🔔' };
+      case 'disabled':
+        return { text: 'Wyłączone', color: '#dc3545', icon: '🔕' };
+      default:
+        return { text: 'Nieznany', color: '#ffc107', icon: '❓' };
     }
   };
 
   if (!isVisible) {
+    const statusInfo = getStatusInfo();
     return (
       <button 
         onClick={() => setIsVisible(true)}
@@ -118,101 +120,213 @@ const FCMTestPanel = () => {
           position: 'fixed',
           bottom: '20px',
           right: '20px',
-          padding: '10px',
+          padding: '12px 16px',
           backgroundColor: '#007bff',
           color: 'white',
           border: 'none',
-          borderRadius: '5px',
+          borderRadius: '8px',
           cursor: 'pointer',
-          zIndex: 1000
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '14px',
+          fontWeight: '500',
+          boxShadow: '0 2px 8px rgba(0,123,255,0.3)'
         }}
       >
-        🧪 FCM Test Panel
+        <span style={{ fontSize: '16px' }}>{statusInfo.icon}</span>
+        Powiadomienia
       </button>
     );
   }
+
+  const statusInfo = getStatusInfo();
 
   return (
     <div style={{
       position: 'fixed',
       bottom: '20px',
       right: '20px',
-      width: '400px',
+      width: '380px',
       maxHeight: '500px',
       backgroundColor: 'white',
-      border: '1px solid #ccc',
-      borderRadius: '10px',
+      border: '1px solid #e1e5e9',
+      borderRadius: '12px',
       padding: '20px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
       zIndex: 1000,
       overflow: 'auto'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h3 style={{ margin: 0 }}>🧪 FCM Test Panel</h3>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '20px',
+        borderBottom: '1px solid #f1f3f4',
+        paddingBottom: '15px'
+      }}>
+        <h3 style={{ margin: 0, color: '#202124', fontSize: '18px' }}>
+          🔔 Panel Powiadomień
+        </h3>
         <button 
           onClick={() => setIsVisible(false)}
-          style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            fontSize: '20px', 
+            cursor: 'pointer',
+            color: '#5f6368',
+            padding: '4px'
+          }}
         >
-          ❌
+          ✕
         </button>
       </div>
 
-      <div style={{ marginBottom: '15px' }}>
-        <p><strong>Użytkownik:</strong> {user ? user.username : 'Niezalogowany'}</p>
+      {/* Status powiadomień */}
+      <div style={{ 
+        marginBottom: '20px',
+        padding: '12px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+      }}>
+        <span style={{ fontSize: '18px' }}>{statusInfo.icon}</span>
+        <div>
+          <strong>Status:</strong>
+          <span style={{ color: statusInfo.color, marginLeft: '8px', fontWeight: '500' }}>
+            {statusInfo.text}
+          </span>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '15px' }}>
-        <button onClick={testFCMToken} style={buttonStyle}>
-          1. Test tokenu FCM
-        </button>
-        <button onClick={testRegisterToken} style={buttonStyle}>
-          2. Test rejestracji
-        </button>
-        <button onClick={testUnregisterToken} style={buttonStyle}>
-          3. Test usuwania
-        </button>
-        <button onClick={testMultiDevice} style={buttonStyle}>
-          4. Test wielu urządzeń
-        </button>
-        <button onClick={clearResults} style={{...buttonStyle, backgroundColor: '#dc3545'}}>
-          Wyczyść wyniki
-        </button>
+      {/* Informacje o użytkowniku */}
+      <div style={{ marginBottom: '20px', fontSize: '14px', color: '#5f6368' }}>
+        <strong>Użytkownik:</strong> {user ? user.username : 'Niezalogowany'}
       </div>
 
+      {/* Przyciski sterowania */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+        <button 
+          onClick={enableNotifications} 
+          disabled={!user || notificationStatus === 'enabled'}
+          style={{
+            ...buttonStyle,
+            backgroundColor: notificationStatus === 'enabled' ? '#6c757d' : '#28a745',
+            cursor: (!user || notificationStatus === 'enabled') ? 'not-allowed' : 'pointer',
+            opacity: (!user || notificationStatus === 'enabled') ? 0.6 : 1
+          }}
+        >
+          🔔 Włącz powiadomienia
+        </button>
+        
+        <button 
+          onClick={disableNotifications} 
+          disabled={!user || notificationStatus === 'disabled'}
+          style={{
+            ...buttonStyle,
+            backgroundColor: notificationStatus === 'disabled' ? '#6c757d' : '#dc3545',
+            cursor: (!user || notificationStatus === 'disabled') ? 'not-allowed' : 'pointer',
+            opacity: (!user || notificationStatus === 'disabled') ? 0.6 : 1
+          }}
+        >
+          🔕 Wyłącz powiadomienia
+        </button>
+
+        {notifications.length > 0 && (
+          <button 
+            onClick={clearNotifications} 
+            style={{...buttonStyle, backgroundColor: '#6c757d', fontSize: '12px', padding: '6px 12px'}}
+          >
+            Wyczyść komunikaty
+          </button>
+        )}
+      </div>
+
+      {/* Komunikaty */}
       <div style={{ 
         backgroundColor: '#f8f9fa', 
-        padding: '10px', 
-        borderRadius: '5px',
-        maxHeight: '200px',
+        padding: '12px', 
+        borderRadius: '8px',
+        maxHeight: '150px',
         overflow: 'auto'
       }}>
-        <strong>Wyniki testów:</strong>
-        {testResults.length === 0 ? (
-          <p style={{ margin: '5px 0', color: '#666' }}>Brak wyników</p>
+        <div style={{ 
+          fontSize: '14px', 
+          fontWeight: '500', 
+          marginBottom: '8px',
+          color: '#202124'
+        }}>
+          Komunikaty:
+        </div>
+        {notifications.length === 0 ? (
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#5f6368',
+            textAlign: 'center',
+            padding: '8px'
+          }}>
+            Brak nowych komunikatów
+          </div>
         ) : (
-          testResults.map((result, index) => (
-            <div key={index} style={{ 
-              margin: '5px 0', 
-              color: result.type === 'error' ? '#dc3545' : result.type === 'success' ? '#28a745' : '#007bff',
-              fontSize: '12px'
-            }}>
-              <span style={{ color: '#666' }}>[{result.timestamp}]</span> {result.message}
+          notifications.map((notification) => (
+            <div 
+              key={notification.id} 
+              style={{ 
+                margin: '4px 0', 
+                padding: '6px 8px',
+                backgroundColor: 'white',
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: notification.type === 'error' ? '#dc3545' : 
+                       notification.type === 'success' ? '#28a745' : 
+                       notification.type === 'warning' ? '#ffc107' : '#007bff',
+                border: `1px solid ${notification.type === 'error' ? '#f5c6cb' : 
+                                     notification.type === 'success' ? '#c3e6cb' : 
+                                     notification.type === 'warning' ? '#ffeaa7' : '#bee5eb'}`
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{notification.message}</span>
+                <span style={{ color: '#6c757d', fontSize: '10px' }}>
+                  {notification.timestamp}
+                </span>
+              </div>
             </div>
           ))
         )}
+      </div>
+
+      {/* Informacja pomocnicza */}
+      <div style={{ 
+        marginTop: '15px', 
+        fontSize: '11px', 
+        color: '#5f6368',
+        textAlign: 'center',
+        fontStyle: 'italic'
+      }}>
+        Powiadomienia działają na wszystkich Twoich urządzeniach
       </div>
     </div>
   );
 };
 
 const buttonStyle = {
-  padding: '8px 12px',
-  backgroundColor: '#007bff',
+  padding: '10px 16px',
   color: 'white',
   border: 'none',
-  borderRadius: '4px',
+  borderRadius: '6px',
   cursor: 'pointer',
-  fontSize: '14px'
+  fontSize: '14px',
+  fontWeight: '500',
+  transition: 'all 0.2s ease',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '6px'
 };
 
-export default FCMTestPanel;
+export default NotificationControlPanel;
