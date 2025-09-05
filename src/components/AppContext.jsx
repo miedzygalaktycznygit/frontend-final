@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext, useEffect, useCallback, useMemo } from 'react';
-import { requestNotificationPermission } from '../notification-manager'; 
+import { requestNotificationPermission, registerToken, unregisterToken, setupTokenRefresh } from '../notification-manager'; 
 import { onMessage } from 'firebase/messaging';
 import { messaging } from '../firebase-config';
 
@@ -17,6 +17,7 @@ export const AppProvider = ({ children }) => {
   const [calendarTasks, setCalendarTasks] = useState([]);
   const [stats, setStats] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentFCMToken, setCurrentFCMToken] = useState(null); // NOWY STAN: Przechowuje aktualny token FCM
 
   // useEffect do obsługi powiadomień, gdy aplikacja jest aktywna (na pierwszym planie)
   useEffect(() => {
@@ -25,7 +26,17 @@ export const AppProvider = ({ children }) => {
         console.log('Otrzymano powiadomienie na żywo (foreground): ', payload);
         alert(`Nowe powiadomienie: ${payload.notification.title}`);
       });
-      return () => unsubscribe();
+
+      // NOWA FUNKCJONALNOŚĆ: Konfiguracja obsługi tokenów FCM
+      const tokenCleanup = setupTokenRefresh(user.id);
+
+      return () => {
+        unsubscribe();
+        // Wywołaj cleanup funkcję jeśli istnieje
+        if (typeof tokenCleanup === 'function') {
+          tokenCleanup();
+        }
+      };
     }
   }, [user]);
 
@@ -78,7 +89,7 @@ export const AppProvider = ({ children }) => {
     }
   }, [user]);
   
-  // ZMODYFIKOWANA CZĘŚĆ: Scentralizowana funkcja do włączania powiadomień
+  // ZMODYFIKOWANA CZĘŚĆ: Nowa funkcja do włączania powiadomień z obsługą multi-device
   const enableNotifications = async (userObject) => {
     const currentUser = userObject || user;
     if (!currentUser) return;
@@ -89,14 +100,16 @@ export const AppProvider = ({ children }) => {
       
       if (fcmToken) {
         console.log('Uzyskano token FCM, wysyłanie na serwer...');
-        await fetch(`${API_URL}/register-token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: currentUser.id, token: fcmToken }),
-        });
-        console.log('Token pomyślnie wysłany na serwer.');
-        if (!userObject) { // Pokaż alert tylko przy ręcznym kliknięciu
-          alert('Powiadomienia zostały włączone!');
+        const success = await registerToken(currentUser.id, fcmToken);
+        
+        if (success) {
+          setCurrentFCMToken(fcmToken); // Zapisz token lokalnie
+          console.log('Token pomyślnie wysłany na serwer.');
+          if (!userObject) { // Pokaż alert tylko przy ręcznym kliknięciu
+            alert('Powiadomienia zostały włączone!');
+          }
+        } else {
+          console.error('Nie udało się zarejestrować tokenu na serwerze');
         }
       }
     } catch (error) {
@@ -126,7 +139,17 @@ export const AppProvider = ({ children }) => {
     }
   };
   
-  const logout = () => setUser(null);
+  // NOWA FUNKCJA: Wylogowanie z usuwaniem tokenu FCM
+  const logout = async () => {
+    // Jeśli mamy zapisany token FCM, usuń go z serwera przed wylogowaniem
+    if (user && currentFCMToken) {
+      console.log('Usuwanie tokenu FCM przed wylogowaniem...');
+      await unregisterToken(user.id, currentFCMToken);
+      setCurrentFCMToken(null);
+    }
+    
+    setUser(null);
+  };
 
   // Pozostałe funkcje bez zmian
   const saveOrUpdateTask = async (taskData, taskId) => {
