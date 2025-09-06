@@ -28,6 +28,7 @@ export default function TaskEditorPage() {
     leader_id: '',
     deadline: '',
     importance: 'normalna',
+    notify_on_completion: true, // NOWE POLE: domyślnie włączone powiadomienia
   });
 
   // Oddzielny stan dla pól cykliczności (nie zapisywane z zadaniem)
@@ -60,6 +61,7 @@ export default function TaskEditorPage() {
           leader_id: String(existingTask.leader_id || ''),
           deadline: existingTask.deadline ? new Date(existingTask.deadline).toISOString().slice(0, 16) : '',
           importance: existingTask.importance || 'normalna',
+          notify_on_completion: existingTask.notify_on_completion !== undefined ? existingTask.notify_on_completion : true, // NOWE POLE
         });
       }
     }
@@ -72,8 +74,9 @@ export default function TaskEditorPage() {
   }, [task.content_state, editor]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setTask(currentTask => ({ ...currentTask, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const fieldValue = type === 'checkbox' ? checked : value;
+    setTask(currentTask => ({ ...currentTask, [name]: fieldValue }));
   };
 
   const handleRecurringChange = (e) => {
@@ -205,6 +208,25 @@ export default function TaskEditorPage() {
               <option value="normalna">Normalna</option>
               <option value="wysoka">Wysoka</option>
             </select>
+          </div>
+
+          {/* NOWA SEKCJA: Kontrola powiadomień */}
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                name="notify_on_completion" 
+                checked={task.notify_on_completion} 
+                onChange={handleChange}
+                style={{ marginRight: '10px', transform: 'scale(1.2)' }}
+              />
+              <span>
+                🔔 Powiadom mnie o zakończeniu tego zadania
+                <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px', fontWeight: 'normal' }}>
+                  Otrzymasz powiadomienie gdy ktoś oznaczy to zadanie jako zakończone
+                </div>
+              </span>
+            </label>
           </div>
 
           {/* Sekcja zadań cyklicznych - oddzielne pola */}

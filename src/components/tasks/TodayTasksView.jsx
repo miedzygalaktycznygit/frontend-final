@@ -97,7 +97,10 @@ export default function TodayTasksView() {
             const response = await fetch(`${API_BASE_URL}/api/tasks/${taskId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus }),
+                body: JSON.stringify({ 
+                    status: newStatus,
+                    userId: currentUser.id  // NOWE: dodajemy ID użytkownika który zmienia status
+                }),
             });
 
             if (!response.ok) {
