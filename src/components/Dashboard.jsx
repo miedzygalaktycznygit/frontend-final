@@ -8,11 +8,10 @@ import EmployeeDashboard from './dashboards/EmployeeDashboard';
 // import { requestNotificationPermission } from '../notification-manager'; 
 
 export default function Dashboard() {
-  // Pobieramy z kontekstu wszystko, czego potrzebujemy, w tym nową funkcję
-  const { user, logout, enableNotifications } = useAppData();
+  // Pobieramy z kontekstu tylko to czego potrzebujemy
+  const { user, logout } = useAppData();
 
-  // Ta osobna funkcja nie jest już potrzebna, możemy wywołać 'enableNotifications' bezpośrednio
-  // const handleNotificationClick = () => { ... };
+
 
   const renderDashboard = () => {
     switch (user.role) {
@@ -32,11 +31,6 @@ export default function Dashboard() {
         <h1>System Zarządzania</h1>
         <div className="user-info">
           <span>Zalogowano jako: <span className="username">{user.username} ({user.role})</span></span>
-          
-          {/* Przycisk teraz wywołuje funkcję bezpośrednio z kontekstu */}
-          <button onClick={enableNotifications} className="btn btn-primary" style={{marginRight: '10px'}}>
-            Włącz Powiadomienia
-          </button>
           
           <button onClick={logout} className="btn btn-secondary">Wyloguj</button>
         </div>
